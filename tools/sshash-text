@@ -34,7 +34,7 @@ import os, sys, copy, time
 
 # Figure out our homedir
 local_homedir = os.path.realpath( os.path.dirname(sys.argv[0]) )
-sys.path.append(local_homedir + "/../lib/sshash/python")
+sys.path.append(f"{local_homedir}/../lib/sshash/python")
 
 import argparse, re, json, xmltodict
 
@@ -45,18 +45,12 @@ output_suffix = '.hashed'
 # Generate reverse map "string" --> "hash" from hashmap dict
 # This is used for fast search for strings in the inputs
 def generate_rmap(hashmap):
-    rmap = {}
-    for h in hashmap:
-        rmap[hashmap[h]['str']] = h
-    return rmap
+    return {hashmap[h]['str']: h for h in hashmap}
 
 # Generate normal map "hash" --> "string" from hashmap dict
 # This is used for fast search for strings in the inputs
 def generate_hmap(hashmap):
-    hmap = {}
-    for h in hashmap:
-        hmap[h] = hashmap[h]['str']
-    return hmap
+    return {h: hashmap[h]['str'] for h in hashmap}
 
 # Replace string if in rmap, otherwise return as is
 def replace_rmap_str(rmap, s):
@@ -67,9 +61,7 @@ def replace_rmap_str(rmap, s):
     if s[0] in [ '#', '@' ]:
         p = s[0]
         s = s[1:]
-    if s in rmap:
-        return p + rmap[s]
-    return p + s
+    return p + rmap[s] if s in rmap else p + s
 
 # Replace strings present in list in the dictionary
 def replace_rmap_list(rmap, l):
@@ -109,7 +101,7 @@ def output_filename(in_file):
 # Process JSON file
 def process_json(rmap, in_file):
     out_file = output_filename(in_file)
-    print('processing JSON {} -> {}'.format(in_file, out_file))
+    print(f'processing JSON {in_file} -> {out_file}')
     d  = json.load(open(in_file))
     nd = replace_rmap_dict(rmap, d);
     with open(out_file, 'w') as o:
@@ -119,7 +111,7 @@ def process_json(rmap, in_file):
 # Process XML file
 def process_xml(rmap, in_file):
     out_file = output_filename(in_file)
-    print('processing XML {} -> {}'.format(in_file, out_file))
+    print(f'processing XML {in_file} -> {out_file}')
     d  = xmltodict.parse(open(in_file, 'rb'))
     nd = replace_rmap_dict(rmap, d);
     with open(out_file, 'w') as o:
@@ -130,7 +122,7 @@ def process_xml(rmap, in_file):
 # Process TXT file
 def process_txt(rmap, in_file):
     out_file = output_filename(in_file)
-    print('processing TXT {} -> {}'.format(in_file, out_file))
+    print(f'processing TXT {in_file} -> {out_file}')
 
     w = open(out_file, 'w')
     r = open(in_file)
@@ -145,7 +137,7 @@ def process_txt(rmap, in_file):
 
         line = r.readline()
         n += 1
-    
+
     return
 
 # Figure out format from file extension
@@ -179,13 +171,10 @@ if __name__=='__main__':
     output_prefix = args.out_prefix
 
     if args.out_suffix == 'auto':
-        if args.mode == 'hash':
-            output_suffix = '.hashed'
-        else:
-            output_suffix = '.unhashed'
+        output_suffix = '.hashed' if args.mode == 'hash' else '.unhashed'
     else:
         output_suffix = args.out_suffix
- 
+
     hashmap = json.load(open(args.hashmap))
 
     if args.mode == 'hash':
@@ -203,7 +192,7 @@ if __name__=='__main__':
     elif args.format in [ "text", "TEXT", "txt", "TXT" ]:
         proc = process_txt
     else:
-        print('unsupported input format: {}'.format(args.format));
+        print(f'unsupported input format: {args.format}');
         sys.exit(1)
 
     for i in args.input:
